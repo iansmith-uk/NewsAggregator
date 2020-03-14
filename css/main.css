@@ -1,0 +1,25 @@
+#content{
+  display: none;
+}
+
+.card{
+  margin: 10px;
+}
+
+#img_container {
+    position:relative;
+    display:inline-block;
+    text-align:center;
+    border:1px solid red;
+}
+
+.button {
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:100px;
+}
+
+.container{
+  margin-top: 250px;
+}
