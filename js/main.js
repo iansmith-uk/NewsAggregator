@@ -2,8 +2,9 @@ var allArticles;
 var removedArticles = [];
 var currentTitle = "";
 var defaultView = 'https://newsapi.org/v2/top-headlines?country=gb&apiKey=39b350bf37884544adc01a04c8aeae73';
-
+var autocomplete = [];
 $(document).ready(function(){
+
   //on page load
   if(sessionStorage){
     setRemovedArticles(JSON.parse(sessionStorage.getItem("removedArticles")));
@@ -15,6 +16,7 @@ $(document).ready(function(){
     allArticles = data.articles;
 
     currentTitle = '<strong>Latest Headlines</strong>';
+    $(".se-pre-con").fadeOut("slow");
     setTitle();
     //for each of the articles append them to the view
     $.each(data.articles, function(index, element){
@@ -43,26 +45,43 @@ $(document).ready(function(){
   //search button
   $('#btn-search').on('click', function(){
     event.preventDefault();
+    $(".se-pre-con").show();
     let value = $('#search-box').val();
+    if(!autocomplete.includes(value)){
+      autocomplete.push(value);
+      localStorage.setItem("search-autocomplete",JSON.stringify(autocomplete));
+    }
+
     $('#search-box').val('');
 
     getNews(value);
-
+    $(".se-pre-con").fadeOut("slow");
   });
 
   //clear removed
   $('.container').on('click','#clear-removed', function(){
     event.preventDefault();
+    $(".se-pre-con").show();
     $(this).parent().slideToggle('fast');
     removedArticles = [];
     sessionStorage.setItem("removedArticles",JSON.stringify(removedArticles));
     getNews(sessionStorage.getItem("currentView"));
+    $(".se-pre-con").fadeOut("slow");
   });
+
+  //search box autocomplete
+  autocompleteArray(JSON.parse(localStorage.getItem('search-autocomplete')));
+  $('#search-box').autocomplete({source: autocomplete});
 });
 
 function setRemovedArticles(jsonArray){
   for(var i in jsonArray)
     removedArticles.push(jsonArray[i]);
+}
+
+function autocompleteArray(json){
+  for(var i in json)
+    autocomplete.push(json[i]);
 }
 
 function inArray(name){
