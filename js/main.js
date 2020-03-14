@@ -1,13 +1,27 @@
+var allArticles;
+var removedArticles = [];
+var currentTitle = "";
+var defaultView = 'https://newsapi.org/v2/top-headlines?country=gb&apiKey=39b350bf37884544adc01a04c8aeae73';
+
 $(document).ready(function(){
   //on page load
-
+  if(sessionStorage){
+    setRemovedArticles(JSON.parse(sessionStorage.getItem("removedArticles")));
+    sessionStorage.setItem("currentView","null");
+  }
   //get our content
-  $.get('https://newsapi.org/v2/top-headlines?country=gb&apiKey=39b350bf37884544adc01a04c8aeae73', function(data, status){
+  $.get(defaultView, function(data, status){
 
-    setTitle('<strong>Latest Headlines</strong>')
+    allArticles = data.articles;
+
+    currentTitle = '<strong>Latest Headlines</strong>';
+    setTitle();
     //for each of the articles append them to the view
     $.each(data.articles, function(index, element){
-      $('.container').append(toArticle(element));
+      if(!inArray(element.url))
+      {
+        $('.container').append(toArticle(element));
+      }
     });
   });
 
@@ -21,6 +35,9 @@ $(document).ready(function(){
   $('.container').on('click','.close', function(){
     event.preventDefault();
     $(this).parent().slideToggle('fast');
+    removedArticles.push($(this).parent().find('#url').attr('href'));
+    sessionStorage.setItem("removedArticles",JSON.stringify(removedArticles));
+    setTitle();
   });
 
   //search button
@@ -32,22 +49,61 @@ $(document).ready(function(){
     getNews(value);
 
   });
+
+  //clear removed
+  $('.container').on('click','#clear-removed', function(){
+    event.preventDefault();
+    $(this).parent().slideToggle('fast');
+    removedArticles = [];
+    sessionStorage.setItem("removedArticles",JSON.stringify(removedArticles));
+    getNews(sessionStorage.getItem("currentView"));
+  });
 });
 
+function setRemovedArticles(jsonArray){
+  for(var i in jsonArray)
+    removedArticles.push(jsonArray[i]);
+}
 
-function setTitle(title){
-  let headHTML = '<div>';
-  headHTML +=    '<h3> '+ title +'</h3>';
+function inArray(name){
+  if(sessionStorage)
+  {
+    let sessionRemovedArticles = JSON.parse(sessionStorage.getItem("removedArticles"));
+    for(var key in sessionRemovedArticles){
+      console.log("array: " + sessionRemovedArticles[key]);
+      console.log("query: " + name);
+      if(new String(sessionRemovedArticles[key]).valueOf().trim() == new String(name).valueOf().trim())
+        return true;
+    }
+  }
+  return false;
+}
+
+function setTitle(){
+  $('.container').find('#title-div').remove();
+  let headHTML = '<div id="title-div">';
+  headHTML +=    '<h3> '+ currentTitle +'</h3>';
+  if(removedArticles !== null && removedArticles.length > 0){
+    headHTML += '<pre>' + removedArticles.length + ' articles removed <a href="#" id="clear-removed"> (clear removed)</a></pre>';
+  }
   headHTML +=    '</div>';
-  $('.container').append(headHTML);
+  $('.container').prepend(headHTML);
 }
 
 function getNews(query){
   $('.container').empty();
-  $.getJSON('https://newsapi.org/v2/everything?q='+ query +'&apiKey=39b350bf37884544adc01a04c8aeae73', function(data){
+  let url = 'https://newsapi.org/v2/everything?q='+ query +'&apiKey=39b350bf37884544adc01a04c8aeae73';
+  sessionStorage.setItem("currentView",query);
+  currentTitle = 'Showing news results for <strong>' + query + '</strong>';
+  if(query == "null"){
+    url = defaultView;
+    currentTitle = '<strong>Latest Headlines</strong>';
+  }
+
+  $.getJSON(url, function(data){
     var html = "";
 
-    setTitle('Showing news results for <strong>' + query + '</strong>');
+    setTitle();
     //custom sort the articles since they come in a random order
     let sortedArticles = data.articles.sort(function(a,b){
       let datea = moment();
@@ -58,14 +114,12 @@ function getNews(query){
 
       return datea < dateb ? 1 : -1;
     });
-
-    let headHTML = '<div>';
-    headHTML +=    '<h3> Showing news results for <strong>' + query + '</strong></h3>';
-    headHTML +=    '</div>';
-    $('.container').append(headHTML);
     //for each of the articles, show to screen
     $.each(sortedArticles, function(index, element){
-      $('.container').append(toArticle(element));
+      if(!inArray(element.url))
+      {
+        $('.container').append(toArticle(element));
+      }
     });
   });
 }
@@ -94,7 +148,7 @@ function toArticle(element){
   html += element.content;
   html += ' </p>';
   html += ' <p class="card-text">';
-  html += '<a href="'+ element.url +' "target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm active" role="button" aria-pressed="true">Read More >></a>';
+  html += '<a id="url" href="'+ element.url +' "target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm active" role="button" aria-pressed="true">Read More >></a>';
   html += ' </p>';
   html += ' </div>';
   html += '</article>';
